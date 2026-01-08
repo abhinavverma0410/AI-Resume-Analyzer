@@ -1,0 +1,250 @@
+/* assets/style.css - Solo Leveling Dark Theme for AI Resume Analyzer */
+
+:root {
+    --shadow-black: #0B0B10;
+    --abyss-black: #050508;
+    --dark-charcoal: #1A1A23;
+    --monarch-purple: #6A0DAD;
+    --shadow-violet: #4B0082;
+    --eclipse-indigo: #2E1A47;
+    --mana-blue: #00C8FF;
+    --arcane-cyan: #00E5FF;
+    --frost-glow: #5CE1E6;
+    --blood-crimson: #B11226;
+    --dark-scarlet: #7A0C18;
+    --rage-red: #FF2E2E;
+    --ash-white: #EAEAF0;
+    --ghost-grey: #9FA3B2;
+    --steel-silver: #C7C9D1;
+}
+
+body {
+    background-color: var(--shadow-black) !important;
+    color: var(--ash-white) !important;
+}
+
+.gradient-header {
+    background: linear-gradient(135deg, var(--monarch-purple) 0%, var(--shadow-violet) 100%) !important;
+    border-bottom: 3px solid var(--mana-blue);
+    box-shadow: 0 0 20px rgba(106, 13, 173, 0.5);
+}
+
+.analysis-card {
+    border-radius: 12px;
+    border: 1px solid var(--eclipse-indigo) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 20px;
+    background-color: var(--dark-charcoal) !important;
+    color: var(--ash-white) !important;
+}
+
+.analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(106, 13, 173, 0.4), 0 0 30px rgba(0, 200, 255, 0.2);
+}
+
+.skill-badge {
+    background: linear-gradient(45deg, var(--monarch-purple), var(--mana-blue));
+    color: var(--ash-white);
+    font-weight: 600;
+    padding: 8px 15px;
+    margin: 5px;
+    border-radius: 20px;
+    display: inline-block;
+    border: 1px solid var(--mana-blue);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.job-title-card {
+    border-left: 4px solid var(--mana-blue) !important;
+    background: linear-gradient(to right, var(--eclipse-indigo), var(--dark-charcoal)) !important;
+    border: 1px solid var(--eclipse-indigo) !important;
+}
+
+.score-display {
+    font-size: 4rem;
+    font-weight: 800;
+    background: linear-gradient(45deg, var(--mana-blue), var(--arcane-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
+}
+
+.tab-content {
+    background: var(--dark-charcoal) !important;
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+    border: 1px solid var(--eclipse-indigo) !important;
+    border-top: none !important;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid var(--eclipse-indigo) !important;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--ghost-grey) !important;
+    font-weight: 500;
+    padding: 12px 20px;
+    background-color: transparent !important;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--mana-blue) !important;
+    border-bottom: 3px solid var(--mana-blue) !important;
+    background: transparent !important;
+    font-weight: 600;
+}
+
+.progress-gradient {
+    background: linear-gradient(90deg, var(--monarch-purple), var(--mana-blue)) !important;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.spinner-container {
+    display: inline-block;
+    margin-bottom: 1rem !important;
+}
+
+.card {
+    background-color: var(--dark-charcoal) !important;
+    border: 1px solid var(--eclipse-indigo) !important;
+    color: var(--ash-white) !important;
+}
+
+.card-header {
+    background-color: var(--eclipse-indigo) !important;
+    border-bottom: 1px solid var(--shadow-violet) !important;
+    color: var(--ash-white) !important;
+}
+
+.card-footer {
+    background-color: var(--eclipse-indigo) !important;
+    border-top: 1px solid var(--shadow-violet) !important;
+    color: var(--ghost-grey) !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--monarch-purple), var(--shadow-violet)) !important;
+    border: 1px solid var(--mana-blue) !important;
+    color: var(--ash-white) !important;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(106, 13, 173, 0.4);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--shadow-violet), var(--monarch-purple)) !important;
+    border: 1px solid var(--arcane-cyan) !important;
+    box-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.alert {
+    background-color: var(--eclipse-indigo) !important;
+    border: 1px solid var(--shadow-violet) !important;
+    color: var(--ash-white) !important;
+}
+
+.alert-danger {
+    background-color: rgba(177, 18, 38, 0.2) !important;
+    border-color: var(--blood-crimson) !important;
+    color: var(--ash-white) !important;
+}
+
+.badge {
+    border: 1px solid transparent;
+}
+
+.badge.bg-light {
+    background-color: var(--eclipse-indigo) !important;
+    color: var(--ash-white) !important;
+    border-color: var(--ghost-grey) !important;
+}
+
+.badge.bg-info {
+    background-color: var(--mana-blue) !important;
+    color: var(--shadow-black) !important;
+    border-color: var(--arcane-cyan) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--monarch-purple) !important;
+    border-color: var(--mana-blue) !important;
+}
+
+.list-group-item {
+    background-color: var(--dark-charcoal) !important;
+    border: 1px solid var(--eclipse-indigo) !important;
+    color: var(--ash-white) !important;
+}
+
+.bg-light {
+    background-color: var(--eclipse-indigo) !important;
+    color: var(--ash-white) !important;
+}
+
+.text-primary {
+    color: var(--mana-blue) !important;
+}
+
+.text-success {
+    color: var(--frost-glow) !important;
+}
+
+.text-warning {
+    color: var(--rage-red) !important;
+}
+
+.text-danger {
+    color: var(--blood-crimson) !important;
+}
+
+.text-muted {
+    color: var(--ghost-grey) !important;
+}
+
+.border-end {
+    border-right-color: var(--eclipse-indigo) !important;
+}
+
+hr {
+    border-top-color: var(--eclipse-indigo) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .score-display {
+        font-size: 3rem;
+    }
+    
+    .analysis-card {
+        margin-bottom: 15px;
+    }
+    
+    .skill-badge {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .score-display {
+        font-size: 2.5rem;
+    }
+    
+    .gradient-header .py-5 {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+}
