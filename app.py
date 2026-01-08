@@ -570,18 +570,39 @@ app.layout = dbc.Container([
 @app.callback(
     Output('results-container', 'children'),
     Input('upload-resume', 'contents'),
-    State('upload-resume', 'filename')
+    State('upload-resume', 'filename'),
+    State('upload-resume', 'last_modified')
 )
-def process_resume(file_contents, filename):
+def process_resume(file_contents, filename, last_modified):
     if not file_contents:
         raise PreventUpdate
     
     try:
-        # Decode file
+        # Check content type
         content_type, content_string = file_contents.split(',')
+        
+        # Validate file type
+        if 'application/pdf' not in content_type:
+            return dbc.Alert([
+                html.H4("❌ Unsupported File Type", className="alert-heading text-light"),
+                html.P("Please upload a PDF file.", className="text-light"),
+                html.Hr(),
+                html.P(f"Received: {content_type.split(';')[0]}", className="mb-0 text-light")
+            ], color="danger", className="analysis-card")
+        
+        # Decode file
         decoded = base64.b64decode(content_string)
         
-        # Loading state
+        # Check file size (5MB limit)
+        if len(decoded) > 5 * 1024 * 1024:
+            return dbc.Alert([
+                html.H4("❌ File Too Large", className="alert-heading text-light"),
+                html.P("Maximum file size is 5MB.", className="text-light"),
+                html.Hr(),
+                html.P(f"Uploaded: {len(decoded) / (1024*1024):.1f} MB", className="mb-0 text-light")
+            ], color="danger", className="analysis-card")
+        
+        # Return loading state immediately
         loading = dbc.Card([
             dbc.CardBody([
                 html.Div([
@@ -590,30 +611,62 @@ def process_resume(file_contents, filename):
                     ], className="spinner-container"),
                     html.H4("Analyzing Your Resume...", className="mb-3 text-light"),
                     html.P("AI is reading your resume and extracting insights", className="text-ghost-grey"),
-                    dbc.Progress(value=100, striped=True, animated=True, className="mt-4 progress-gradient")
+                    dbc.Progress(value=100, striped=True, animated=True, className="mt-4 progress-gradient"),
+                    html.Div([
+                        html.Small(f"File: {filename}", className="text-muted"),
+                        html.Br(),
+                        html.Small(f"Type: {content_type.split(';')[0]}", className="text-muted")
+                    ], className="mt-3")
                 ], className="text-center py-5")
             ])
         ], className="analysis-card")
         
-        # Analyze resume directly from bytes
-        results = analyze_resume_from_bytes(decoded)
+        # IMPORTANT: Return the loading state immediately
+        # This allows the UI to show the loader while processing continues
+        import threading
+        from dash import callback_context
+        import flask
         
-        if "error" in results:
-            return dbc.Alert([
-                html.H4("❌ Analysis Error", className="alert-heading text-light"),
-                html.P(results["error"], className="text-light"),
-                html.Hr(),
-                html.P("Please ensure your resume is a valid PDF file.", className="mb-0 text-light")
-            ], color="danger", className="analysis-card")
+        # Store the current callback context
+        ctx = callback_context
         
-        # Extract results
-        text = results.get("text", "")
-        contact_info = results.get("contact_info", {})
-        analysis = results.get("analysis", {})
-        stats = results.get("stats", {})
+        # Define a function to process in background
+        def process_and_update():
+            # Analyze resume directly from bytes
+            results = analyze_resume_from_bytes(decoded)
+            
+            if "error" in results:
+                error_result = dbc.Alert([
+                    html.H4("❌ Analysis Error", className="alert-heading text-light"),
+                    html.P(results["error"], className="text-light"),
+                    html.Hr(),
+                    html.P("Please ensure your resume is a valid PDF file.", className="mb-0 text-light")
+                ], color="danger", className="analysis-card")
+                
+                # Update the output with error
+                with app.server.app_context():
+                    ctx.outputs_list[0]['value'] = error_result
+            else:
+                # Extract results
+                text = results.get("text", "")
+                contact_info = results.get("contact_info", {})
+                analysis = results.get("analysis", {})
+                stats = results.get("stats", {})
+                
+                # Create UI
+                final_result = create_results_ui(text, contact_info, analysis, stats)
+                
+                # Update the output with final result
+                with app.server.app_context():
+                    ctx.outputs_list[0]['value'] = final_result
         
-        # Create UI
-        return create_results_ui(text, contact_info, analysis, stats)
+        # Start processing in background
+        thread = threading.Thread(target=process_and_update)
+        thread.daemon = True
+        thread.start()
+        
+        # Return the loading state immediately
+        return loading
         
     except Exception as e:
         print(f"Callback error: {e}")
