@@ -169,7 +169,6 @@ def extract_contact_info(file_bytes_or_path):
         
         # Extract name from text
         name = extract_name_from_text(text)
-        print(f"🔍 Extracted name: '{name}'")  # Debug line
         
         # If name is still generic, try to find email and extract from it
         if name == "Candidate" or "Candidate" in name:
@@ -292,6 +291,7 @@ def analyze_with_ollama_complete(text, contact_info):
         print(f"🤖 Analyzing resume with {OLLAMA_MODEL}...")
         start_time = time.time()
         
+        # Call Ollama with proper model loading and content type
         response = ollama.chat(
             model=OLLAMA_MODEL,
             messages=[
@@ -307,7 +307,10 @@ def analyze_with_ollama_complete(text, contact_info):
             options={
                 'temperature': 0.2,  # Lower temperature for more precise extraction
                 'top_p': 0.8,
-                'num_predict': 2000
+                'num_predict': 2000,
+                'num_ctx': 4096,  # Context window size
+                'num_gpu': 1,  # Use GPU if available
+                'seed': 42  # For reproducibility
             }
         )
         
@@ -497,6 +500,42 @@ app.index_string = '''
 '''
 
 
+def create_loading_card(filename=""):
+    """Create the loading card UI"""
+    return dbc.Card([
+        dbc.CardBody([
+            html.Div([
+                html.Div([
+                    dbc.Spinner(size="lg", color="primary", type="border")
+                ], className="text-center mb-4"),
+                html.H4("🤖 AI Resume Analysis in Progress", className="mb-3 text-light text-center"),
+                html.P("Our AI is carefully analyzing your resume and extracting insights...", className="text-ghost-grey text-center mb-4"),
+                dbc.Progress(
+                    value=100, 
+                    striped=True, 
+                    animated=True, 
+                    className="mt-4 mb-4",
+                    style={"height": "8px"}
+                ),
+                html.Div([
+                    html.Div([
+                        html.I(className="fas fa-file-pdf text-primary me-2"),
+                        html.Small(f"File: {filename if filename else 'Resume.pdf'}", className="text-muted")
+                    ], className="mb-2 text-center"),
+                    html.Div([
+                        html.I(className="fas fa-microchip text-info me-2"),
+                        html.Small(f"Model: {OLLAMA_MODEL}", className="text-muted")
+                    ], className="mb-2 text-center"),
+                    html.Div([
+                        html.I(className="fas fa-clock text-warning me-2"),
+                        html.Small("This usually takes time depending on resume length...", className="text-muted")
+                    ], className="text-center")
+                ], className="mt-3 p-3 bg-dark rounded")
+            ], className="py-5")
+        ])
+    ], className="analysis-card")
+
+
 # Layout
 app.layout = dbc.Container([
     # Header
@@ -544,7 +583,10 @@ app.layout = dbc.Container([
                 ])
             ], className="analysis-card mb-5"),
             
-            # Results Section
+            # Loading Container (initially hidden)
+            html.Div(id="loading-container", style={"display": "none"}),
+            
+            # Results Container
             html.Div(id="results-container"),
             
             # Footer
@@ -566,115 +608,98 @@ app.layout = dbc.Container([
 ], fluid=True, className="px-4")
 
 
-# Callback
+# Callbacks
 @app.callback(
-    Output('results-container', 'children'),
+    Output('loading-container', 'children'),
+    Output('loading-container', 'style'),
     Input('upload-resume', 'contents'),
     State('upload-resume', 'filename'),
-    State('upload-resume', 'last_modified')
+    prevent_initial_call=True
 )
-def process_resume(file_contents, filename, last_modified):
-    if not file_contents:
+def show_loading_card(contents, filename):
+    """Show loading card when file is uploaded"""
+    if contents:
+        # Create loading card with filename
+        loading_card = create_loading_card(filename)
+        # Return loading card and make it visible
+        return loading_card, {"display": "block"}
+    # No content, hide loading
+    return None, {"display": "none"}
+
+
+@app.callback(
+    Output('results-container', 'children'),
+    Output('loading-container', 'style', allow_duplicate=True),
+    Input('upload-resume', 'contents'),
+    State('upload-resume', 'filename'),
+    State('upload-resume', 'last_modified'),
+    prevent_initial_call=True
+)
+def process_resume_and_hide_loading(contents, filename, last_modified):
+    """Process resume and return results, hiding loading when done"""
+    if not contents:
         raise PreventUpdate
     
     try:
         # Check content type
-        content_type, content_string = file_contents.split(',')
+        content_type, content_string = contents.split(',')
         
         # Validate file type
         if 'application/pdf' not in content_type:
+            # Hide loading, show error
             return dbc.Alert([
                 html.H4("❌ Unsupported File Type", className="alert-heading text-light"),
                 html.P("Please upload a PDF file.", className="text-light"),
                 html.Hr(),
                 html.P(f"Received: {content_type.split(';')[0]}", className="mb-0 text-light")
-            ], color="danger", className="analysis-card")
+            ], color="danger", className="analysis-card"), {"display": "none"}
         
         # Decode file
         decoded = base64.b64decode(content_string)
         
         # Check file size (5MB limit)
         if len(decoded) > 5 * 1024 * 1024:
+            # Hide loading, show error
             return dbc.Alert([
                 html.H4("❌ File Too Large", className="alert-heading text-light"),
                 html.P("Maximum file size is 5MB.", className="text-light"),
                 html.Hr(),
                 html.P(f"Uploaded: {len(decoded) / (1024*1024):.1f} MB", className="mb-0 text-light")
-            ], color="danger", className="analysis-card")
+            ], color="danger", className="analysis-card"), {"display": "none"}
         
-        # Return loading state immediately
-        loading = dbc.Card([
-            dbc.CardBody([
-                html.Div([
-                    html.Div([
-                        dbc.Spinner(size="lg", color="primary")
-                    ], className="spinner-container"),
-                    html.H4("Analyzing Your Resume...", className="mb-3 text-light"),
-                    html.P("AI is reading your resume and extracting insights", className="text-ghost-grey"),
-                    dbc.Progress(value=100, striped=True, animated=True, className="mt-4 progress-gradient"),
-                    html.Div([
-                        html.Small(f"File: {filename}", className="text-muted"),
-                        html.Br(),
-                        html.Small(f"Type: {content_type.split(';')[0]}", className="text-muted")
-                    ], className="mt-3")
-                ], className="text-center py-5")
-            ])
-        ], className="analysis-card")
+        # Analyze resume (this will take time - loading card is visible)
+        results = analyze_resume_from_bytes(decoded)
         
-        # IMPORTANT: Return the loading state immediately
-        # This allows the UI to show the loader while processing continues
-        import threading
-        from dash import callback_context
-        import flask
+        if "error" in results:
+            # Hide loading, show error
+            return dbc.Alert([
+                html.H4("❌ Analysis Error", className="alert-heading text-light"),
+                html.P(results["error"], className="text-light"),
+                html.Hr(),
+                html.P("Please ensure your resume is a valid PDF file.", className="mb-0 text-light")
+            ], color="danger", className="analysis-card"), {"display": "none"}
         
-        # Store the current callback context
-        ctx = callback_context
+        # Extract results
+        text = results.get("text", "")
+        contact_info = results.get("contact_info", {})
+        analysis = results.get("analysis", {})
+        stats = results.get("stats", {})
         
-        # Define a function to process in background
-        def process_and_update():
-            # Analyze resume directly from bytes
-            results = analyze_resume_from_bytes(decoded)
-            
-            if "error" in results:
-                error_result = dbc.Alert([
-                    html.H4("❌ Analysis Error", className="alert-heading text-light"),
-                    html.P(results["error"], className="text-light"),
-                    html.Hr(),
-                    html.P("Please ensure your resume is a valid PDF file.", className="mb-0 text-light")
-                ], color="danger", className="analysis-card")
-                
-                # Update the output with error
-                with app.server.app_context():
-                    ctx.outputs_list[0]['value'] = error_result
-            else:
-                # Extract results
-                text = results.get("text", "")
-                contact_info = results.get("contact_info", {})
-                analysis = results.get("analysis", {})
-                stats = results.get("stats", {})
-                
-                # Create UI
-                final_result = create_results_ui(text, contact_info, analysis, stats)
-                
-                # Update the output with final result
-                with app.server.app_context():
-                    ctx.outputs_list[0]['value'] = final_result
+        # Create results UI
+        results_ui = create_results_ui(text, contact_info, analysis, stats)
         
-        # Start processing in background
-        thread = threading.Thread(target=process_and_update)
-        thread.daemon = True
-        thread.start()
-        
-        # Return the loading state immediately
-        return loading
+        # Hide loading, show results
+        return results_ui, {"display": "none"}
         
     except Exception as e:
         print(f"Callback error: {e}")
         traceback.print_exc()
+        # Hide loading, show error
         return dbc.Alert([
             html.H4("Processing Error", className="alert-heading text-light"),
             html.P(f"Error: {str(e)}", className="text-light"),
-        ], color="danger", className="analysis-card")
+        ], color="danger", className="analysis-card"), {"display": "none"}
+
 
 def create_results_ui(text, contact_info, analysis, stats):
     """Create the results UI"""
@@ -950,6 +975,7 @@ if __name__ == "__main__":
     print(f"• Ollama Status: {'✅ Connected' if OLLAMA_AVAILABLE else '❌ Not available'}")
     if OLLAMA_AVAILABLE:
         print(f"• Model: {OLLAMA_MODEL}")
+        print(f"• Loading configuration: num_ctx=4096, num_gpu=1, temperature=0.2")
     print("• AI extracts everything from resume")
     print("• Dashboard: http://localhost:8050")
     print("\n📁 Ready to analyze resumes...\n")
